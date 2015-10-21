@@ -1,0 +1,41 @@
+package BB;
+
+import java.io.*;
+
+public class Tmp {
+	private static String LDR_PATH = "/sys/bus/iio/devices/iio:device0/in_voltage";
+// --------------------( To read from the analog input of the BagelBone ) ----------------------------------------	
+	private int readAnalog(int number){
+		BufferedReader bw;
+		try {
+			bw = new BufferedReader ( new FileReader (LDR_PATH + number + "_raw"));
+			String s =bw.readLine();
+			number = Integer.parseInt(s);
+			bw.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return number;
+	}
+	
+	//---------------------( A method to get the tempreture based from the sensor in the bagelbone )----------------------------------
+	public float getTemperature(int adc_value){
+		   float cur_voltage = adc_value * (1.80f/4096.0f);
+		   float diff_degreesC = (cur_voltage-0.75f)/0.01f;
+		   return (25.0f + diff_degreesC);
+		}
+	public float temp(){
+		   int ain = 4;
+		   System.out.println("Starting the TMP36 temperature sensor program");
+		   if (argc>1) ain = Integer.parseInt(argv[1]);
+		   int value = readAnalog(ain);
+		   System.out.println("The ADC value is: " + value);
+		   float temperature = getTemperature(value);
+		   
+		   System.out.println("The temperatures is: " +temperature + " degrees Celsius.");
+		   return temperature;
+		}
+}
+
