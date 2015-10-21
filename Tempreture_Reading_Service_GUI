@@ -1,0 +1,488 @@
+package BB;
+
+import javax.swing.*;
+
+import java.io.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.Socket;
+
+public class TmpService extends Frame implements ActionListener {
+
+	
+    	
+	private JFrame F1,F2,F3,F4,F5,F6,F7;
+	private JButton Connect,portButton,proceed,quit,credits,tmpReading,showTrigger,back1,edit1,edit2,back2,enter1,back3,start,stop,back4,exit1,enter2,exit2,setIpAddress,setTimeStep,back5;
+	private JLabel greeting,credintials,setTimeStepInSeconds,currentLow,currentHigh,currentTimeStep,ctr,readings,lastReading,lr;
+	private JTextField timeStep;
+	private String IP;
+	private int sampleNumber = 0;
+	String ELT;
+	String EHT;
+	private String Port;
+	private DateTimeService lastdate;
+    
+    private Socket socket = null;
+    private ObjectOutputStream os = null;
+    private ObjectInputStream is = null;
+    public  String[] storage = new String[10];
+ 
+
+	public TmpService() {
+		
+		FramesSetUp(); // Has all the frames
+		LabelsSetUp(); // has all the labels
+		ButtonsSetUp(); // has all the buttons 
+		TextFieldSetUp(); // has all the texfields
+	    	    
+	    pack();
+	    F1.setVisible(true);
+	   
+        
+	}
+	//-------------------- ( Connect to the server method )---------------------------------------
+	private boolean connectToServer(String serverIP) {
+    	try {
+    		// open a new socket to the server 
+    		this.socket = new Socket(serverIP,Integer.parseInt(Port));
+    		this.os = new ObjectOutputStream(this.socket.getOutputStream());
+    		this.is = new ObjectInputStream(this.socket.getInputStream());
+    		System.out.println("00. -> Connected to Server:" + this.socket.getInetAddress() 
+    				+ " on port: " + this.socket.getPort());
+    		System.out.println("    -> from local address: " + this.socket.getLocalAddress() 
+    				+ " and port: " + this.socket.getLocalPort());
+    	} 
+        catch (Exception e) {
+        	System.out.println("XX. Failed to Connect to the Server at port: " + Port);
+        	System.out.println("    Exception: " + e.toString());	
+        	return false;
+        }
+		return true;
+    }
+	
+	//-----------------------( to request the date and to set the time step to the server )----------------------------
+	
+	private void getDateAndTemp() {
+    	String theDateCommand = "Requesting the Date and Setting Time Step" + timeStep.getText() , bbbObject; // add the data i want to send
+    	System.out.println("01. -> Sending Command (" + theDateCommand + ") to the server...");
+    	
+    	// add a loop for the sample time delay 
+    	this.send(theDateCommand);
+    	for(int i = 10; i > sampleNumber; i--){
+    		
+        	
+        	try{   		
+        		
+        		bbbObject = (String) receive();
+        		System.out.println("05. <- The Server responded with: ");
+        		System.out.println("    <- " + bbbObject);	
+        		storage[i] = bbbObject;
+        		
+        	}
+        	catch (Exception e){
+        		System.out.println("XX. There was an invalid object sent back from the server");
+        	}
+        	sampleNumber++;
+        	System.out.println(" " + sampleNumber);
+    	}
+    	
+    	
+    	System.out.println("06. -- Disconnected from Server.");
+    }
+	
+	
+	// method to send a generic object.
+    private void send(Object o) {
+		try {
+		    System.out.println("02. -> Sending an object...");
+		    os.writeObject(o);
+		    os.flush();
+		} 
+	    catch (Exception e) {
+		    System.out.println("XX. Exception Occurred on Sending:" +  e.toString());
+		}
+    }
+
+    // method to receive a generic object.
+    private Object receive() 
+    {
+		Object o = null;
+		try {
+			System.out.println("03. -- About to receive an object...");
+		    o = is.readObject();
+		    System.out.println("04. <- Object received...");
+		} 
+	    catch (Exception e) {
+		    System.out.println("XX. Exception Occurred on Receiving:" + e.toString());
+		}
+		return o;
+    }
+
+	
+	
+
+	private void TextFieldSetUp() {
+		
+		timeStep = new JTextField(10);
+		F6.add(timeStep);
+		
+	}
+
+	private void ButtonsSetUp() {
+		
+		    proceed = new JButton("Proceed");
+		    F1.add(proceed);                     
+		    proceed.addActionListener(this);
+		                  
+		    quit = new JButton("Exit");
+		    F1.add(quit); 
+		    quit.addActionListener(this);
+		    
+		    credits = new JButton("Credits");
+		    F1.add(credits);    
+		    credits.addActionListener(this);
+		    
+		    back1 = new JButton ("Back");
+		    F3.add(back1);
+		    back1.addActionListener(this);
+		    
+		    tmpReading = new JButton("Tempreture Readings");
+		    F2.add(tmpReading);
+		    tmpReading.addActionListener(this);
+		    
+		    showTrigger = new JButton("Show Triggers");
+		    F2.add(showTrigger);
+		    showTrigger.addActionListener(this);
+		    
+		    edit1 = new JButton("Edit Low Trigger");
+		    F4.add(edit1);
+		    edit1.addActionListener(this);
+		    
+		    edit2 = new JButton("Edit High Trigger");
+		    F4.add(edit2);
+		    edit2.addActionListener(this);
+		    
+		    back2 = new JButton("Back");
+		    F2.add(back2);
+		    back2.addActionListener(this);
+		    
+		    setIpAddress = new JButton("Set IP Address");
+		    F2.add(setIpAddress);
+		    setIpAddress.addActionListener(this);
+		    
+		    back3 = new JButton("Back");
+		    F4.add(back3);
+		    back3.addActionListener(this);
+		    
+		    start = new JButton("Start");
+		    F5.add(start);
+		    start.addActionListener(this);
+		    
+		    stop = new JButton("Stop");
+		    F5.add(stop);
+		    stop.addActionListener(this);
+		    
+		    setTimeStep = new JButton("Set Time Step");
+		    F5.add(setTimeStep);
+		    setTimeStep.addActionListener(this);
+		    
+		    back4 = new JButton("Back");
+		    F5.add(back4);
+		    back4.addActionListener(this);
+		    
+		    back5 = new JButton("Back");
+		    F6.add(back5);
+		    back5.addActionListener(this);
+		    
+		    enter1 = new JButton("Enter");
+		    F6.add(enter1);
+		    enter1.addActionListener(this);
+		    
+		    exit1 = new JButton("Exit");
+		    F7.add(exit1);
+		    exit1.addActionListener(this);
+		    
+		    enter2 = new JButton("Enter");
+		    
+		    enter2.addActionListener(this);
+		    
+		    exit2 = new JButton("Exit");
+		    
+		    exit2.addActionListener(this);
+		    
+		    portButton = new JButton("Set Port");
+		    F2.add(portButton);
+		    portButton.addActionListener(this);
+		    
+		    Connect = new JButton("Connect");
+		    F2.add(Connect);
+            Connect.addActionListener(this);		    
+		    
+		    
+		    
+	}
+
+	private void LabelsSetUp() {
+		
+		 greeting = new JLabel("Tempreture Service Application",JLabel.CENTER);
+		 F1.add(greeting);
+		 
+		 credintials = new JLabel("This application was made as a fulfillment for the Assignment 2 of the module EE402, it was done by Sari Al Gaidy , ID Number : 13210818.",JLabel.CENTER);
+		 F3.add(credintials);
+		 
+		 currentLow = new JLabel("Current Low Trigger:"/* add changes here */);
+		 F4.add(currentLow);
+		 
+		 currentHigh = new JLabel("Current High Trigger:"/* add changes here */);
+		 F4.add(currentHigh);
+		 
+		 setTimeStepInSeconds = new JLabel("Set Time Step In Seconds:");
+		 F6.add(setTimeStepInSeconds);
+		 
+		 currentTimeStep = new JLabel("Current Time Step:" );
+		 F6.add(currentTimeStep);
+		 
+		 readings = new JLabel("" /* add changes here */);
+		 F5.add(readings);
+		 
+		 lastReading = new JLabel("Last reading was :"  /* add changes here */);
+		 F5.add(lastReading);
+		 
+		 
+	}
+
+	private void FramesSetUp() {
+		
+		F1 = new JFrame();
+		F1.setLayout(new FlowLayout()); 
+		F1.setSize(300, 300);
+		
+	    F2 = new JFrame();
+		F2.setLayout(new FlowLayout());
+		F2.setSize(300, 300);
+		
+		F3 = new JFrame();
+    	F3.setLayout(new FlowLayout()); 
+    	F3.setSize(800, 200);
+		
+		F4 = new JFrame();
+		F4.setLayout(new FlowLayout());
+		F4.setSize(300, 300);
+		
+		F5 = new JFrame();
+		F5.setLayout(new FlowLayout());
+		F5.setSize(300, 300);
+		
+		F6 = new JFrame();
+		F6.setLayout(new FlowLayout());
+		F6.setSize(300, 300);
+		
+		F7 = new JFrame();
+		F7.setLayout(new FlowLayout());
+		F7.setSize(300, 300);		
+		
+	}
+
+	public void actionPerformed(ActionEvent e) {
+		
+		if (e.getActionCommand().equals("Proceed"))
+        {
+ 		 F2.setVisible(true);
+         F1.setVisible(false);
+        }
+        else if (e.getActionCommand().equals("Exit"))
+        {
+        	if(F1.isVisible())
+        		
+        	{
+        		System.exit(0);
+        		
+        	}
+        	else if(F7.isVisible())
+        	{
+        		
+        		F7.setVisible(false);
+        		
+        	}
+          
+        }
+        else if (e.getActionCommand().equals("Credits"))
+        {
+    	
+         F3.setVisible(true);
+         F1.setVisible(false);
+        }
+         else if (e.getActionCommand().equals("Show Triggers"))
+         {
+     	
+          F4.setVisible(true);
+          F2.setVisible(false);
+        }
+         else if (e.getActionCommand().equals("Back"))
+         {
+        	if (F2.isVisible())
+        	{        		
+        	    F2.setVisible(false);
+                F1.setVisible(true);      	
+        	} 
+        	
+        	else if (F3.isVisible())
+         	{        		
+         	    F3.setVisible(false);
+                F1.setVisible(true);      	
+         	} 
+        	
+        	else if (F4.isVisible())
+         	{        		
+         	    F4.setVisible(false);
+                F2.setVisible(true);      	
+         	} 
+        	
+        	else if (F5.isVisible())
+         	{        		
+         	    F5.setVisible(false);
+                F2.setVisible(true);      	
+         	} 
+        	
+        	else if (F6.isVisible())
+         	{        		
+         	    F6.setVisible(false);
+                F5.setVisible(true);      	
+         	} 
+     
+        }
+   //------------------( Pop up dialog for the triggers ) ----------------------------------------
+         else if (e.getActionCommand().equals("Edit Low Trigger"))
+         {
+        	 ELT = JOptionPane.showInputDialog(this, "Enter the desireable Low Trigger of the Tempreture in Celesis", 
+      				"Low Trigger", JOptionPane.QUESTION_MESSAGE);
+      			this.setLowTrigger(ELT);
+                // open pop up to edit the trigger values
+        }
+         else if (e.getActionCommand().equals("Edit High Trigger"))
+         {
+        	 EHT = JOptionPane.showInputDialog(this, "Enter the desirable High Trigger of the Tempreture in Celesis", 
+      				"High Trigger", JOptionPane.QUESTION_MESSAGE);
+      			this.setHighTrigger(EHT);
+                // open pop up to edit the trigger values
+        }
+         else if (e.getActionCommand().equals("Tempreture Readings"))
+         {
+     	
+          F5.setVisible(true);
+          F2.setVisible(false);
+          
+        }
+         else if (e.getActionCommand().equals("Start"))
+         {
+          
+        	 getDateAndTemp();
+        	 
+        	 
+        	 // get readings from BBB
+        	 
+        }
+         else if (e.getActionCommand().equals("Stop"))// when this button get pressed , the time and date get called for the last reading and it will display a new frame that show the progress bar
+         {
+     	
+        	 lastReading.setText("Last reading was :" + lastdate.getDateAndTime() );
+        	 
+        	 
+        	 // stop the reading
+        	 
+        	 
+          F7.setVisible(true);
+          
+          
+          
+        }
+         else if (e.getActionCommand().equals("Set Time Step"))
+         {
+     	
+          F6.setVisible(true);
+          F5.setVisible(false);
+          
+        }
+		// ------------------------( to update the Current time step label )----------------------------
+         else if (e.getActionCommand().equals("Enter"))
+         {
+     	    if(F6.isVisible())
+     	    {
+     	    	
+     	    	currentTimeStep.setText("Current Time Step :" + timeStep.getText());
+     	    	
+     	    	
+     	    	
+     	    	//  Sends the time step of the readings to the BBB
+     	    	
+     	    	
+     	    }
+          
+        }
+		// ------------------------( to set the ip and port of the client and send it to the server ) ----------------
+         else if (e.getActionCommand().equals("Set IP Address"))
+         {
+        	 
+        	  IP = JOptionPane.showInputDialog(this, "Enter the IP address please", 
+     				"IP Pop up dialog",JOptionPane.QUESTION_MESSAGE);
+     			this.getIp(IP);
+
+          // Open a pop up to get address and port from user
+          
+        }
+		
+         else if (e.getActionCommand().equals("Set Port"))
+         {
+        	 Port = JOptionPane.showInputDialog(this, "Enter the port Number", 
+      				"Port Number", JOptionPane.QUESTION_MESSAGE);
+      			this.getPortNumber(Port);
+                
+        }
+		
+         else if (e.getActionCommand().equals("Connect"))
+         {      	 
+        	    	if (!connectToServer(IP)) {
+        	    		System.out.println("XX. Failed to open socket connection to: " + IP);                   	    	             
+        }
+         }
+	}
+
+	private void setLowTrigger(String eLT2) {
+		// Send the low trigger to BBB
+		
+		currentLow.setText("Current Low Trigger:" + ELT);
+		
+	}
+
+	private void setHighTrigger(String eHT2) {
+		// Send the High Trigger to BBB
+		
+		currentHigh.setText("Current High Trigger:" + EHT);
+		
+	}
+
+	private void getIp(String string) {
+		
+		System.out.println("" + IP);
+		
+	}
+	
+private void getPortNumber(String string) {
+		
+		System.out.println("" + Port);
+		
+	}
+
+
+public static void main(String[] args) {
+	
+//------------------------( initalizing the program by calling the constructor )-------------------------------	
+	new TmpService();
+			
+
+}
+	
+}
