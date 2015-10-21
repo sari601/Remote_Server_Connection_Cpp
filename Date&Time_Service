@@ -1,0 +1,25 @@
+package BB;
+
+import java.util.Calendar;
+import java.util.Date;
+
+public class DateTimeService
+{
+   private Calendar calendar;
+  
+
+   //constructor creates the Calendar object, could use the constructor:
+   //   Calendar(TimeZone zone, Locale aLocale) to explicitly specify 
+   //	  the time zone and locale
+  
+
+   //method returns date/time as a formatted String object
+   public String getDateAndTime()
+   {
+	   
+	 this.calendar = Calendar.getInstance(); 
+	 Date d = this.calendar.getTime();
+     return "The Time is : " + d.toString();	
+     
+   }	
+}
