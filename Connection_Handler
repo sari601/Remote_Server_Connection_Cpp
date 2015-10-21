@@ -1,0 +1,210 @@
+package BB;
+
+import java.net.*;
+import java.io.*;
+
+
+
+public class ThreadedConnectionHandler extends Thread
+{
+    private Socket clientSocket = null;				// Client socket object
+    private ObjectInputStream is = null;			// Input stream
+    private ObjectOutputStream os = null;			// Output stream
+    private DateTimeService theDateService;
+    private Tmp Tempreture;
+    private TmpService Triggers;
+    private static final String LED0_PATH =  "/sys/class/leds/beaglebone:green:usr0";
+	private static final String LED1_PATH =  "/sys/class/leds/beaglebone:green:usr1";
+	private Tmp Trig;
+	BufferedWriter bw;
+	private int br = 0;
+	
+    
+	// The constructor for the connection handler
+    public ThreadedConnectionHandler(Socket clientSocket) {
+        this.clientSocket = clientSocket;
+        //Set up a service object to get the current date and time
+        theDateService = new DateTimeService();
+    }
+
+    // Will eventually be the thread execution method - can't pass the exception back
+    public void run() {
+         try {
+            this.is = new ObjectInputStream(clientSocket.getInputStream());
+            this.os = new ObjectOutputStream(clientSocket.getOutputStream());
+            while (this.readCommand()) {}
+         } 
+         catch (IOException e) 
+         {
+        	System.out.println("XX. There was a problem with the Input/Output Communication:");
+            e.printStackTrace();
+         }
+    }
+
+    // Receive and process incoming string commands from client socket 
+    private boolean readCommand() {
+        String s = null;
+        try {
+            s = (String) is.readObject();
+        } 
+        catch (Exception e){    // catch a general exception
+        	this.closeSocket();
+            return false;
+        }
+        System.out.println("01. <- Received a String object from the client (" + s + ").");
+        br++;
+        // At this point there is a valid String object
+        // invoke the appropriate function based on the command 
+        if (br > 0){  // if an object got recieved send the object from server to client
+            this.getDate(); 
+        }       
+        else { 
+            this.sendError("Invalid command: " + s); 
+        }           
+        
+        //------------------------------( Flashing LEDs based on the triggers ) ---------------------------------------------------------
+              
+        Float f = Tempreture.temp();
+        
+           if (Float.parseFloat(Triggers.EHT) > f){
+        	
+        	
+			try {
+				bw = new BufferedWriter ( new FileWriter (LED0_PATH+"/trigger"));
+			} catch (IOException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+			try {
+				bw.write("none");
+			} catch (IOException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+			try {
+				bw.close();
+			} catch (IOException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+			try {
+				bw = new BufferedWriter ( new FileWriter (LED0_PATH+"/brightness"));
+			} catch (IOException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+			try {
+				bw.write( Float.parseFloat(Triggers.EHT) > Trig.temp() ? "1":"0");
+			} catch (NumberFormatException | IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			try {
+				bw.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} 
+        }
+        else if (Float.parseFloat(Triggers.ELT ) < f)
+        {
+        
+        	
+			try {
+				bw = new BufferedWriter ( new FileWriter (LED1_PATH+"/trigger"));
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			try {
+				bw.write("none");
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			try {
+				bw.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			try {
+				bw = new BufferedWriter ( new FileWriter (LED1_PATH+"/brightness"));
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			try {
+				bw.write( Float.parseFloat(Triggers.ELT) < Trig.temp() ? "1":"0");
+			} catch (NumberFormatException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			try {
+				bw.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+   //---------------------------------------------------------------------------------------------------------------------     
+    
+        } 
+        
+        return true;
+       
+    }
+//------------------------------( Sending the date and tempreture to the client )-------------------------------------------------
+    // Use our custom DateTimeService Class to get the date and time
+    private void getDate() {	// use the date service to get the date
+        String currentDateTimeText = theDateService.getDateAndTime() + " "+ Float.toString(Tempreture.temp()) + " " +Thread.currentThread();
+        
+        this.send(currentDateTimeText);
+    }
+
+    // Send a generic object back to the client 
+    private void send(Object o) {
+        try {
+            System.out.println("02. -> Sending (" + o +") to the client.");
+            this.os.writeObject(o);
+            this.os.flush();
+        } 
+        catch (Exception e) {
+            System.out.println("XX." + e.getStackTrace());
+        }
+    }
+    
+    // Send a pre-formatted error message to the client 
+    public void sendError(String message) { 
+        this.send("Error:" + message);	//remember a String IS-A Object!
+    }
+    
+    // Close the client socket 
+    public void closeSocket() { //gracefully close the socket connection
+        try {
+            this.os.close();
+            this.is.close();
+            this.clientSocket.close();
+        } 
+        catch (Exception e) {
+            System.out.println("XX. " + e.getStackTrace());
+        }
+    }
+   //--------------------------------( A Delay to set the time step ) ----------------------------------------------------- 
+    public void delay(){
+    	
+    	try {
+			Thread.sleep(1000);
+			System.out.println("Delay has Occured");
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    	
+    	
+    	
+    }
+}
